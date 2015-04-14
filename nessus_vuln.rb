@@ -41,19 +41,35 @@ end
 @flc = []
 @ladmin =[]
 @ladminh = Hash.new
+@critcount = []
+@ipcount = []
+@flccount = []
+@ladmincount = []
 
 @scandata.each do |key, value|
-  @critical<< @scandata[key].values if @scandata[key].has_value?("Critical Severity")
-  @high<< @scandata[key].values if @scandata[key].has_value?("High Severity")
+  if @scandata[key].has_value?("Critical Severity")
+    @critical<< @scandata[key].values 
+    @critcount<< @scandata[key][:ip]
+  end
+  if @scandata[key].has_value?("High Severity")
+    @high<< @scandata[key].values 
+    @critcount<< @scandata[key][:ip]
+  end
   @medium<< @scandata[key].values if @scandata[key].has_value?("Medium Severity")
   @low<< @scandata[key].values if @scandata[key].has_value?("Low Severity")
 end
 
 @scaninfo.each do |key, value|
-  @flc<< @scaninfo[key].values if @scaninfo[key][:plugin_id] == "21745"
+  if @scaninfo[key][:plugin_id] == "21745"
+    @flc<< @scaninfo[key].values
+    @flccount<< @scaninfo[key][:ip]
+  end
+  @ipcount<< @scaninfo[key][:ip]
 end
 
-@ladminh = @scaninfo.keep_if{|key| @scaninfo[key][:plugin_id] == "10902"}
+
+@ladminh = @scaninfo.clone
+@ladminh.keep_if{|key| @ladminh[key][:plugin_id] == "10902"}
 @ladminh.each do |key, value|
   temp = @ladminh[key][:plugin_output].to_s
   temp.sub!("\nThe following users are members of the 'Administrators' group :\n\n", "")
@@ -63,14 +79,33 @@ end
   temp.strip!
 end
 @ladminh.each do |key, value|
-  @ladmin<< @ladminh[key].values unless @ladminh[key][:plugin_output].empty?
+  unless @ladminh[key][:plugin_output].empty?
+    @ladmin<< @ladminh[key].values 
+    @ladmincount<< @ladminh[key][:ip]
+  end
 end
 
 #Setting up the spreadsheet for the data
 book = Spreadsheet::Workbook.new
 format = Spreadsheet::Format.new :color => :black, :weight => :normal, :size => 12, :align => :left, :border => :thin
 title_format = Spreadsheet::Format.new :color => :black, :weight => :bold, :size => 12, :align => :center, :border => :thin, :pattern => 1, :pattern_fg_color => :aqua
-for i in 0..5 do
+stat_title_format = Spreadsheet::Format.new :color => :black, :weight => :bold, :size => 20, :align => :center, :pattern => 1, :pattern_fg_color => :aqua
+stat_format = Spreadsheet::Format.new :color => :black, :weight => :bold, :size => 12, :align => :left
+#Stats workbook
+sheet0 = book.create_worksheet
+sheet0.name = 'Stats'
+sheet0.row(0).push "Statisics of Scan"
+sheet0.row(0).default_format = stat_title_format
+sheet0.default_format=stat_format
+sheet0.column(0).width = 70
+sheet0.column(1).width = 30
+sheet0.row(1).push 'Total IPs with at least one Crit or High finding.', "#{@critcount.uniq.count}"
+sheet0.row(2).push 'Total IPs scanned that responded with an open port.', "#{@ipcount.uniq.count}"
+sheet0.row(3).push 'Number of failed local checks.', "#{@flccount.uniq.count}"
+sheet0.row(4).push 'Number of computers with non-standard local admins.', "#{@ladmincount.uniq.count}"
+
+#Data workbooks
+for i in 1..6 do
  i = book.create_worksheet
  i.row(0).push 'IP', 'Host', 'Severity', 'Port', 'Plugin Name', 'Synopsis', 'Description', 'Solution', 'CVE', 'Plugin ID', 'Plugin Output', 'Resolved', 'Comments'
  i.row(0).default_format = title_format
@@ -78,17 +113,17 @@ for i in 0..5 do
  [0,2,3,8,9].each{|col| i.column(col).width = 20}
  [1,4,5,6,10,11,12].each{|col| i.column(col).width = 30}
 end
-sheet1 = book.worksheet 0
+sheet1 = book.worksheet 1
 sheet1.name = 'Critical'
-sheet2 = book.worksheet 1
+sheet2 = book.worksheet 2
 sheet2.name = 'High'
-sheet3 = book.worksheet 2
+sheet3 = book.worksheet 3
 sheet3.name = 'Medium'
-sheet4 = book.worksheet 3
+sheet4 = book.worksheet 4
 sheet4.name = 'Low'
-sheet5 = book.worksheet 4
+sheet5 = book.worksheet 5
 sheet5.name = 'Local Checks Failed'
-sheet6 = book.worksheet 5
+sheet6 = book.worksheet 6
 sheet6.name = 'Local Admins'
 
 
