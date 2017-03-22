@@ -8,6 +8,7 @@ require 'spreadsheet'
 unless ARGV[0] and ARGV[1]
   puts "Usage nessus_vuln.rb name.nessus output.xls (must be xls not xlsx)"
   puts "This script takes a .nessus file and edits out any compliance findings and ones with no risk and splits the others out in tabs sorted by host."
+  puts "admins.txt file is for approved local admins, domain name and groups need to be edited in the script."
   exit 1
 end
 
@@ -71,12 +72,16 @@ end
 @ladminh = @scaninfo.clone
 @ladminh.keep_if{|key| @ladminh[key][:plugin_id] == "10902"}
 @ladminh.each do |key, value|
-  temp = @ladminh[key][:plugin_output].to_s
-  temp.sub!("\nThe following users are members of the 'Administrators' group :\n\n", "")
-  temp.sub!(/-\sRJO\\[Dd]omain\s[Aa]dmins\s\(Group\)/, "")
-  temp.sub!("- RJO\\PowerUsers (Group)\n", "")
-  temp.sub!(/-\s.*\\Administrator\s\(User\)\n/, "")
-  temp.strip!
+  @temp = @ladminh[key][:plugin_output].to_s
+  @temp.sub!("\nThe following users are members of the 'Administrators' group :\n\n", "")
+  @temp.sub!(/-\sRJO\\[Dd]omain\s[Aa]dmins\s\(Group\)/, "")
+  @temp.sub!("- RJO\\PowerUsers (Group)\n", "")
+  @temp.sub!(/-\s.*\\[Aa]dministrator\s\(User\)\n/, "")
+  @temp.sub!(/-\sRJO\\London\sPower\sUsers\s\(Group\)/, "")
+  File.readlines('admins.txt').each do |line|
+    @temp.sub!("-\sRJO\\#{line.chomp}\s\(User\)", "")
+  end
+  @temp.strip!
 end
 @ladminh.each do |key, value|
   unless @ladminh[key][:plugin_output].empty?
