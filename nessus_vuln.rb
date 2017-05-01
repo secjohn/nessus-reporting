@@ -26,7 +26,7 @@ host.each_event do |event|
       @scaninfo.update( @info_num => {ip: "#{host.ip}", hostname: "#{host.hostname}", sevwords: "#{event.severity.in_words}", port: "#{event.port}", name: "#{event.name}", synopsis: "#{event.synopsis}", description: "#{event.description}", solution: "#{event.solution}", cve: "#{event.cve}", plugin_id: "#{event.plugin_id}", plugin_output: "#{event.plugin_output}"})
       @info_num += 1 
       else 
-    @scandata.update( @event_num => {ip: "#{host.ip}", hostname: "#{host.hostname}", sevwords: "#{event.severity.in_words}", port: "#{event.port}", name: "#{event.name}", synopsis: "#{event.synopsis}", description: "#{event.description}", solution: "#{event.solution}", cve: "#{event.cve}", plugin_id: "#{event.plugin_id}", plugin_output: "#{event.plugin_output}"})
+    @scandata.update( @event_num => {ip: "#{host.ip}", hostname: "#{host.hostname}", sevwords: "#{event.severity.in_words}", port: "#{event.port}", name: "#{event.name}", synopsis: "#{event.synopsis}", description: "#{event.description}", solution: "#{event.solution}", cve: "#{event.cve}", plugin_id: "#{event.plugin_id}"})
     @event_num += 1
   end
   end
@@ -100,6 +100,7 @@ unless ARGV[2] == "nlc"
 else
   puts "skipping local checks and admins"
 end
+
 #Setting up the spreadsheet for the data
 book = Spreadsheet::Workbook.new
 format = Spreadsheet::Format.new :color => :black, :weight => :normal, :size => 12, :align => :left, :border => :thin
@@ -124,11 +125,11 @@ end
 #Data workbooks
 for i in 1..6 do
  i = book.create_worksheet
- i.row(0).push 'IP', 'Host', 'Severity', 'Port', 'Plugin Name', 'Synopsis', 'Description', 'Solution', 'CVE', 'Plugin ID', 'Plugin Output', 'Resolved', 'Comments'
+ i.row(0).push 'IP', 'Host', 'Severity', 'Port', 'Plugin Name', 'Synopsis', 'Description', 'Solution', 'CVE', 'Plugin ID', 'Resolved', 'Comments'
  i.row(0).default_format = title_format
  i.default_format=format
  [0,2,3,8,9].each{|col| i.column(col).width = 20}
- [1,4,5,6,10,11,12].each{|col| i.column(col).width = 30}
+ [1,4,5,6,10,11].each{|col| i.column(col).width = 30}
 end
 sheet1 = book.worksheet 1
 sheet1.name = 'Critical'
